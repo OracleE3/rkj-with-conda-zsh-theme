@@ -2,6 +2,8 @@
 # on two lines for easier vgrepping
 # entry in a nice long thread on the Arch Linux forums: https://bbs.archlinux.org/viewtopic.php?pid=521888#p521888
 
+set +x
+
 function retcode() {}
 
 # =================================================
@@ -72,8 +74,34 @@ precmd() { # cspell:disable-line
     output_command_execute_after $last_cmd_result
 }
 
+# set option
+setopt PROMPT_SUBST # cspell:disable-line
+
+# timer
+#REF: https://stackoverflow.com/questions/26526175/zsh-menu-completion-causes-problems-after-zle-reset-prompt
+TMOUT=1
+TRAPALRM() { # cspell:disable-line
+    # $(git_prompt_info) cost too much time which will raise stutters when inputting. so we need to disable it in this occurrence.
+    # if [ "$WIDGET" != "expand-or-complete" ] && [ "$WIDGET" != "self-insert" ] && [ "$WIDGET" != "backward-delete-char" ]; then
+    # black list will not enum it completely. even some pipe broken will appear.
+    # so we just put a white list here.
+    if [ "$WIDGET" = "" ] || [ "$WIDGET" = "accept-line" ]; then
+        zle reset-prompt
+    fi
+
+    if [ "$_SIMPLERICH_PROMPT_CALLED_COUNT" -eq 0 ]; then
+        _simplerich_update_git_info
+    fi
+
+    local count="$((_SIMPLERICH_PROMPT_CALLED_COUNT + 1))"
+    if [ "$count" -ge 10 ]; then
+        count=0
+    fi
+    export _SIMPLERICH_PROMPT_CALLED_COUNT=$count
+}
+
 # git
-ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg[green]%}["
+ZSH_THEME_GIT_PROMPT_PREFIX=" - %{$fg[green]%}["
 ZSH_THEME_GIT_PROMPT_SUFFIX="%{$fg[green]%}]%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_DIRTY="  %{$fg[yellow]%}*"
 
@@ -163,14 +191,14 @@ _rkj_with_conda_prompt() {
         print $'%{\e[0;34m%}%B┌─[%b%{\e[0m%}%{\e[1;32m%}%n%{\e[1;30m%}@%{\e[0m%}%{\e[0;36m%}%m%{\e[0;34m%}%B]%b%{\e[0m%} - '\
 $'%{\e[0;34m%}%B[%{\e[1;35m%}'"$(python_info)"$'%{\e[0;34m%}%B]%{\e[0m%}%b - '\
 $'%b%{\e[0;34m%}%B[%b%{\e[1;37m%}%~%{\e[0;34m%}%B]%b%{\e[0m%} - '\
-$'%{\e[0;34m%}%B[%b%{\e[0;33m%}%D{%Y-%m-%d %I:%M:%S}%b%{\e[0;34m%}%B]%b%{\e[0m%} - '\
+$'%{\e[0;34m%}%B[%b%{\e[0;33m%}%D{%Y-%m-%d %I:%M:%S}%b%{\e[0;34m%}%B]%b%{\e[0m%}'\
 "$(git_info)\n"\
 $'%{\e[0;34m%}%B└─%B[%{\e[1;35m%}%?%{\e[0;34m%}%B]%{\e[0m%}%b '
     else
         print $'%{\e[0;34m%}%B┌─[%b%{\e[0m%}%{\e[1;32m%}%n%{\e[1;30m%}@%{\e[0m%}%{\e[0;36m%}%m%{\e[0;34m%}%B]%b%{\e[0m%} - '\
 $'%{\e[0;34m%}%{\e[0m%}%b'\
 $'%b%{\e[0;34m%}%B[%b%{\e[1;37m%}%~%{\e[0;34m%}%B]%b%{\e[0m%} - '\
-$'%{\e[0;34m%}%B[%b%{\e[0;33m%}%D{%Y-%m-%d %I:%M:%S}%b%{\e[0;34m%}%B]%b%{\e[0m%} - '\
+$'%{\e[0;34m%}%B[%b%{\e[0;33m%}%D{%Y-%m-%d %I:%M:%S}%b%{\e[0;34m%}%B]%b%{\e[0m%}'\
 "$(git_info)\n"\
 $'%{\e[0;34m%}%B└─%B[%{\e[1;35m%}%?%{\e[0;34m%}%B]%{\e[0m%}%b '
     fi
